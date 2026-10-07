@@ -37,6 +37,7 @@ function App() {
  const [quizScore,setQuizScore]=useState(null);
  const [quizTimeLeft,setQuizTimeLeft]=useState(null);
  const [showQuiz,setShowQuiz]=useState(false);
+ const [reviewSummary,setReviewSummary]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
 
@@ -100,7 +101,12 @@ function App() {
    setShowExercises(false);
    setOpenCorrection(null);
    setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setQuizTimeLeft(null); setShowQuiz(false);
+   setReviewSummary(null);
    setError("");
+   supabase.from("lesson_review_summaries")
+     .select("quick_summary,key_points,memorize_points,common_mistakes,exam_tip,keywords")
+     .eq("lesson_id",lesson.id).eq("is_active",true).maybeSingle()
+     .then(({data})=>setReviewSummary(data||null));
  }
 
  async function startExercises(){
@@ -182,6 +188,18 @@ function App() {
       {selectedLesson.difficulty ? <span>• {selectedLesson.difficulty}</span> : null}
     </div>
   </div>
+  {reviewSummary && <section className="review-summary-panel">
+    <div className="review-summary-head">
+      <div><span className="section-kicker">⚡ للمراجعة السريعة</span><h3>اختصار الدرس</h3></div>
+      <span className="review-badge">مراجعة</span>
+    </div>
+    {reviewSummary.quick_summary && <div className="review-quick">{reviewSummary.quick_summary}</div>}
+    {(reviewSummary.key_points||[]).length > 0 && <div className="review-block"><b>📌 أهم النقاط</b><ul>{reviewSummary.key_points.map((x,i)=><li key={i}>{x}</li>)}</ul></div>}
+    {(reviewSummary.memorize_points||[]).length > 0 && <div className="review-block"><b>🧠 لازم تحفظ</b><ul>{reviewSummary.memorize_points.map((x,i)=><li key={i}>{x}</li>)}</ul></div>}
+    {(reviewSummary.common_mistakes||[]).length > 0 && <div className="review-block"><b>❌ أخطاء شائعة</b><ul>{reviewSummary.common_mistakes.map((x,i)=><li key={i}>{x}</li>)}</ul></div>}
+    {reviewSummary.exam_tip && <div className="review-tip"><b>🎯 نصيحة للباك</b><p>{reviewSummary.exam_tip}</p></div>}
+    {(reviewSummary.keywords||[]).length > 0 && <div className="review-keywords">{reviewSummary.keywords.map((x,i)=><span key={i}>{x}</span>)}</div>}
+  </section>}
   <div className="lesson-content">
     {selectedLesson.content ? selectedLesson.content.split(/\n+/).map((paragraph,index)=>
       paragraph.trim() ? <p key={index}>{paragraph}</p> : null
