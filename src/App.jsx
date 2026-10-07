@@ -25,6 +25,7 @@ function App() {
  const [lessons,setLessons]=useState([]);
  const [selected,setSelected]=useState(null);
  const [selectedChapter,setSelectedChapter]=useState(null);
+ const [selectedLesson,setSelectedLesson]=useState(null);
  const [selectedSubject,setSelectedSubject]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
@@ -60,10 +61,15 @@ function App() {
  async function chooseChapter(chapter){
    setSelectedChapter(chapter); setLessons([]); setError("");
    const {data,error}=await supabase.from("lessons")
-     .select("id,title,slug,short_description,position,estimated_minutes,difficulty")
+     .select("id,title,slug,short_description,content,position,estimated_minutes,difficulty")
      .eq("chapter_id",chapter.id).eq("is_active",true).order("position");
    if(error){setError("صار مشكل في جلب الدروس."); return;}
    setLessons(data||[]);
+ }
+
+ function chooseLesson(lesson){
+   setSelectedLesson(lesson);
+   setError("");
  }
 
  const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
@@ -94,7 +100,29 @@ function App() {
     <div className="branch-grid">{branches.map(b=>{const v=branchVisuals[b.slug]||["📘",b.name,"green"];return <button key={b.id} className={`branch-card ${v[2]} ${selected?.id===b.id?"selected":""}`} onClick={()=>chooseBranch(b)}><span className="branch-icon">{v[0]}</span><span className="branch-copy"><b>{b.name}</b><small>{v[1]}</small></span><span className="arrow">←</span></button>})}</div>}
     {error && <div className="error-note">⚠️ {error}</div>}
     {selected && !error && <div className="subjects-panel"><div className="subjects-head"><div><span className="section-kicker">مواد الشعبة</span><h3>{selected.name}</h3></div><span>{subjects.length} مادة</span></div><div className="subject-grid">{subjects.map(s=><button key={s.id} className={`subject-card ${selectedSubject?.id===s.id?"selected":""}`} onClick={()=>chooseSubject(s)}><span>📚</span><div><b>{s.name}</b>{s.is_optional&&<small>اختيارية</small>}</div><i>←</i></button>)}</div>
-    {selectedSubject && !error && <div className="chapters-panel"><div className="subjects-head"><div><span className="section-kicker">فصول المادة</span><h3>{selectedSubject.name}</h3></div><span>{chapters.length} فصل</span></div>{chapters.length ? <div className="chapter-list">{chapters.map((c,index)=><button key={c.id} className={`chapter-card ${selectedChapter?.id===c.id?"selected":""}`} onClick={()=>chooseChapter(c)}><span className="chapter-number">{String(c.position ?? index+1).padStart(2,"0")}</span><div><b>{c.name}</b>{c.description&&<small>{c.description}</small>}</div><i>←</i></button>)}</div> : <div className="empty-box">ما فماش فصول متاحة للمادة هاذي توا.</div>}{selectedChapter && !error && <div className="lessons-panel"><div className="subjects-head"><div><span className="section-kicker">دروس الفصل</span><h3>{selectedChapter.name}</h3></div><span>{lessons.length} درس</span></div>{lessons.length ? <div className="lesson-list">{lessons.map((l,index)=><button key={l.id} className="lesson-card"><span className="lesson-number">{String(l.position ?? index+1).padStart(2,"0")}</span><div className="lesson-copy"><b>{l.title}</b>{l.short_description&&<small>{l.short_description}</small>}<span className="lesson-meta">{l.estimated_minutes ? `⏱ ${l.estimated_minutes} دق` : ""}{l.difficulty ? ` • ${l.difficulty}` : ""}</span></div><i>←</i></button>)}</div> : <div className="empty-box">ما فماش دروس متاحة للفصل هذا توا.</div>}</div>}</div>}
+    {selectedSubject && !error && <div className="chapters-panel"><div className="subjects-head"><div><span className="section-kicker">فصول المادة</span><h3>{selectedSubject.name}</h3></div><span>{chapters.length} فصل</span></div>{chapters.length ? <div className="chapter-list">{chapters.map((c,index)=><button key={c.id} className={`chapter-card ${selectedChapter?.id===c.id?"selected":""}`} onClick={()=>chooseChapter(c)}><span className="chapter-number">{String(c.position ?? index+1).padStart(2,"0")}</span><div><b>{c.name}</b>{c.description&&<small>{c.description}</small>}</div><i>←</i></button>)}</div> : <div className="empty-box">ما فماش فصول متاحة للمادة هاذي توا.</div>}{selectedChapter && !error && <div className="lessons-panel"><div className="subjects-head"><div><span className="section-kicker">دروس الفصل</span><h3>{selectedChapter.name}</h3></div><span>{lessons.length} درس</span></div>{lessons.length ? <div className="lesson-list">{lessons.map((l,index)=><button key={l.id} className={`lesson-card ${selectedLesson?.id===l.id?"selected":""}`} onClick={()=>chooseLesson(l)}><span className="lesson-number">{String(l.position ?? index+1).padStart(2,"0")}</span><div className="lesson-copy"><b>{l.title}</b>{l.short_description&&<small>{l.short_description}</small>}<span className="lesson-meta">{l.estimated_minutes ? `⏱ ${l.estimated_minutes} دق` : ""}{l.difficulty ? ` • ${l.difficulty}` : ""}</span></div><i>←</i></button>)}</div> : <div className="empty-box">ما فماش دروس متاحة للفصل هذا توا.</div>}
+{selectedLesson && <article className="lesson-reader">
+  <div className="lesson-reader-head">
+    <div>
+      <span className="section-kicker">الدرس {String(selectedLesson.position ?? "").padStart(2,"0")}</span>
+      <h3>{selectedLesson.title}</h3>
+      {selectedLesson.short_description && <p>{selectedLesson.short_description}</p>}
+    </div>
+    <div className="lesson-reader-meta">
+      {selectedLesson.estimated_minutes ? <span>⏱ {selectedLesson.estimated_minutes} دقيقة</span> : null}
+      {selectedLesson.difficulty ? <span>• {selectedLesson.difficulty}</span> : null}
+    </div>
+  </div>
+  <div className="lesson-content">
+    {selectedLesson.content ? selectedLesson.content.split(/\n+/).map((paragraph,index)=>
+      paragraph.trim() ? <p key={index}>{paragraph}</p> : null
+    ) : <div className="empty-box">محتوى الدرس موش متوفر توا.</div>}
+  </div>
+  <button className="primary-btn lesson-exercises-btn" onClick={()=>alert("التمارين باش نربطوها بالدرس في المرحلة الجاية.")}>
+    ابدأ التمارين ←
+  </button>
+</article>}
+</div>}</div>}
    </div>}
    </section>
 
