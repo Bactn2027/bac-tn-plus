@@ -21,7 +21,9 @@ const features = [
 function App() {
  const [branches,setBranches]=useState([]);
  const [subjects,setSubjects]=useState([]);
+ const [chapters,setChapters]=useState([]);
  const [selected,setSelected]=useState(null);
+ const [selectedSubject,setSelectedSubject]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
 
@@ -42,6 +44,15 @@ function App() {
      .eq("branch_id",branch.id).eq("is_active",true).order("name");
    if(error){setError("صار مشكل في جلب المواد."); return;}
    setSubjects(data||[]);
+ }
+
+ async function chooseSubject(subject){
+   setSelectedSubject(subject); setChapters([]); setError("");
+   const {data,error}=await supabase.from("chapters")
+     .select("id,name,slug,description,position")
+     .eq("subject_id",subject.id).eq("is_active",true).order("position");
+   if(error){setError("صار مشكل في جلب الفصول."); return;}
+   setChapters(data||[]);
  }
 
  const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
@@ -71,7 +82,9 @@ function App() {
     {loading ? <div className="loading-box">نحضّرلك الشعب... ⏳</div> :
     <div className="branch-grid">{branches.map(b=>{const v=branchVisuals[b.slug]||["📘",b.name,"green"];return <button key={b.id} className={`branch-card ${v[2]} ${selected?.id===b.id?"selected":""}`} onClick={()=>chooseBranch(b)}><span className="branch-icon">{v[0]}</span><span className="branch-copy"><b>{b.name}</b><small>{v[1]}</small></span><span className="arrow">←</span></button>})}</div>}
     {error && <div className="error-note">⚠️ {error}</div>}
-    {selected && !error && <div className="subjects-panel"><div className="subjects-head"><div><span className="section-kicker">مواد الشعبة</span><h3>{selected.name}</h3></div><span>{subjects.length} مادة</span></div><div className="subject-grid">{subjects.map(s=><button key={s.id} className="subject-card"><span>📚</span><div><b>{s.name}</b>{s.is_optional&&<small>اختيارية</small>}</div><i>←</i></button>)}</div></div>}
+    {selected && !error && <div className="subjects-panel"><div className="subjects-head"><div><span className="section-kicker">مواد الشعبة</span><h3>{selected.name}</h3></div><span>{subjects.length} مادة</span></div><div className="subject-grid">{subjects.map(s=><button key={s.id} className={`subject-card ${selectedSubject?.id===s.id?"selected":""}`} onClick={()=>chooseSubject(s)}><span>📚</span><div><b>{s.name}</b>{s.is_optional&&<small>اختيارية</small>}</div><i>←</i></button>)}</div>
+    {selectedSubject && !error && <div className="chapters-panel"><div className="subjects-head"><div><span className="section-kicker">فصول المادة</span><h3>{selectedSubject.name}</h3></div><span>{chapters.length} فصل</span></div>{chapters.length ? <div className="chapter-list">{chapters.map((c,index)=><button key={c.id} className="chapter-card"><span className="chapter-number">{String(c.position ?? index+1).padStart(2,"0")}</span><div><b>{c.name}</b>{c.description&&<small>{c.description}</small>}</div><i>←</i></button>)}</div> : <div className="empty-box">ما فماش فصول متاحة للمادة هاذي توا.</div>}</div>}
+   </div>}
    </section>
 
    <section id="features" className="section features-section"><div className="section-heading centered"><span className="section-kicker">كل شيء في بلاصة وحدة</span><h2>علاش <span>Bac TN+؟</span></h2><p>بسيط في الاستعمال، قوي في المراجعة، ومبني على احتياجات التلميذ.</p></div><div className="feature-grid">{features.map(([icon,title,text])=><article className="feature-card" key={title}><span className="feature-icon">{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
