@@ -120,3 +120,56 @@
 .lesson-meta{font-size:.78rem;color:#718096}
 .lesson-card i{font-style:normal;color:#72e6cf;font-size:1.1rem}
 @media (max-width:640px){.lesson-card{padding:13px 12px;gap:10px}.lesson-number{flex-basis:36px;width:36px;height:36px}.lesson-copy b{font-size:.94rem}.lesson-copy small{font-size:.82rem}}
+
+
+/* Lesson Reader */
+.lesson-card.selected{
+  border-color:rgba(57,217,138,.55);
+  background:rgba(57,217,138,.06);
+}
+.lesson-reader{
+  margin-top:22px;
+  padding:24px;
+  border:1px solid rgba(57,217,138,.18);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(57,217,138,.07),rgba(255,255,255,.025));
+  text-align:right;
+}
+.lesson-reader-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+  padding-bottom:18px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.lesson-reader-head h3{
+  margin:5px 0 8px;
+  font-size:1.5rem;
+}
+.lesson-reader-head p{
+  margin:0;
+  color:#a9b6c7;
+  line-height:1.8;
+}
+.lesson-reader-meta{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  color:#72e8b2;
+  font-size:.82rem;
+  white-space:nowrap;
+}
+.lesson-content{
+  padding:22px 4px 8px;
+  color:#d9e2ed;
+  line-height:2;
+  font-size:1rem;
+}
+.lesson-content p{margin:0 0 16px}
+.lesson-exercises-btn{margin-top:10px}
+@media(max-width:700px){
+  .lesson-reader{padding:18px}
+  .lesson-reader-head{display:block}
+  .lesson-reader-meta{margin-top:12px;white-space:normal}
+}
