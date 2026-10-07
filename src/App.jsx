@@ -1,181 +1,84 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "./supabase";
 
-const branches = [
-  { name: "علوم تجريبية", fr: "Sciences expérimentales", icon: "🧬", tone: "green" },
-  { name: "رياضيات", fr: "Mathématiques", icon: "📐", tone: "blue" },
-  { name: "علوم تقنية", fr: "Sciences techniques", icon: "⚙️", tone: "orange" },
-  { name: "إعلامية", fr: "Informatique", icon: "💻", tone: "purple" },
-  { name: "اقتصاد وتصرف", fr: "Économie & gestion", icon: "📊", tone: "teal" },
-  { name: "آداب", fr: "Lettres", icon: "📚", tone: "rose" }
-];
+const branchVisuals = {
+  "sciences-experimentales":["🧬","Sciences expérimentales","green"],
+  "mathematiques":["📐","Mathématiques","blue"],
+  "sciences-techniques":["⚙️","Sciences techniques","orange"],
+  "sciences-informatique":["💻","Sciences de l'informatique","purple"],
+  "economie-gestion":["📊","Économie & Gestion","teal"],
+  "lettres":["📚","Lettres","rose"],
+  "sport":["🏃","Sport","red"]
+};
 
 const features = [
-  ["🎯", "راجع بذكاء", "دروس مرتبة وتمارين وQCM باش تعرف وين وصلت ووين يلزمك تخدم."],
-  ["⚡", "اختبر روحك", "اختبارات قصيرة تساعدك تثبّت معلوماتك وتتعلم من أخطائك."],
-  ["📈", "تابع تقدّمك", "شوف تقدّمك، نقاطك وسلسلة المراجعة متاعك في مكان واحد."],
-  ["🇹🇳", "مصمّم للتلميذ التونسي", "محتوى وتنظيم موجهين للبكالوريا التونسية وبطريقة سهلة."],
+ ["🎯","راجع بذكاء","دروس مرتبة وتمارين وQCM باش تعرف وين وصلت ووين يلزمك تخدم."],
+ ["⚡","اختبر روحك","اختبارات قصيرة تساعدك تثبّت معلوماتك وتتعلم من أخطائك."],
+ ["📈","تابع تقدّمك","شوف تقدّمك، نقاطك وسلسلة المراجعة متاعك في مكان واحد."],
+ ["🇹🇳","مصمّم للتلميذ التونسي","محتوى وتنظيم موجهين للبكالوريا التونسية وبطريقة سهلة."]
 ];
 
 function App() {
-  const [selected, setSelected] = useState(null);
+ const [branches,setBranches]=useState([]);
+ const [subjects,setSubjects]=useState([]);
+ const [selected,setSelected]=useState(null);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+ useEffect(()=>{ loadBranches(); },[]);
 
-  return (
-    <div className="app">
-      <header className="navbar">
-        <div className="nav-inner">
-          <button className="brand" onClick={() => scrollTo("home")} aria-label="Bac TN+">
-            <span className="brand-mark">+</span>
-            <span>
-              <b>Bac TN</b><strong>+</strong>
-              <small>Prépare. Progresse. Réussis.</small>
-            </span>
-          </button>
+ async function loadBranches(){
+   setLoading(true); setError("");
+   const {data,error}=await supabase.from("branches").select("id,name,slug,description").eq("is_active",true).order("name");
+   if(error){setError("ما قدرناش نجيبو الشعب توا. جرّب مرة أخرى.");}
+   else setBranches(data||[]);
+   setLoading(false);
+ }
 
-          <nav>
-            <button onClick={() => scrollTo("branches")}>الشعب</button>
-            <button onClick={() => scrollTo("features")}>المميزات</button>
-            <button onClick={() => scrollTo("motivation")}>رسالتنا</button>
-          </nav>
+ async function chooseBranch(branch){
+   setSelected(branch); setSubjects([]); setError("");
+   const {data,error}=await supabase.from("subjects")
+     .select("id,name,slug,is_optional")
+     .eq("branch_id",branch.id).eq("is_active",true).order("name");
+   if(error){setError("صار مشكل في جلب المواد."); return;}
+   setSubjects(data||[]);
+ }
 
-          <button className="login-btn" onClick={() => alert("تسجيل الدخول سيكون متاحًا مع نظام الحسابات.")}>
-            دخول
-          </button>
-        </div>
-      </header>
+ const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
 
-      <main>
-        <section id="home" className="hero">
-          <div className="hero-glow glow-one" />
-          <div className="hero-glow glow-two" />
+ return <div className="app">
+  <header className="navbar"><div className="nav-inner">
+   <button className="brand" onClick={()=>scrollTo("home")}><span className="brand-mark">+</span><span><b>Bac TN</b><strong>+</strong><small>Prépare. Progresse. Réussis.</small></span></button>
+   <nav><button onClick={()=>scrollTo("branches")}>الشعب</button><button onClick={()=>scrollTo("features")}>المميزات</button><button onClick={()=>scrollTo("motivation")}>رسالتنا</button></nav>
+   <button className="login-btn" onClick={()=>alert("تسجيل الدخول باش نضيفوه في المرحلة الجاية.")}>دخول</button>
+  </div></header>
 
-          <div className="hero-content">
-            <div className="eyebrow"><span>🇹🇳</span> منصتك الجديدة للبكالوريا التونسية</div>
-            <h1>حضّر للبكالوريا<br /><span>بثقة، خطوة بخطوة.</span></h1>
-            <p className="hero-text">
-              دروس، تمارين، QCM واختبارات في مكان واحد.
-              <br />
-              <b>نظّم وقتك، تابع تقدّمك، وقرّب أكثر لهدفك.</b>
-            </p>
-
-            <div className="hero-actions">
-              <button className="primary-btn" onClick={() => scrollTo("branches")}>
-                ابدأ المراجعة <span>←</span>
-              </button>
-              <button className="secondary-btn" onClick={() => scrollTo("features")}>
-                اكتشف Bac TN+
-              </button>
-            </div>
-
-            <div className="trust-row">
-              <span>✓ مجاني للانطلاق</span>
-              <span>✓ سهل الاستعمال</span>
-              <span>✓ موجه للبكالوريا التونسية</span>
-            </div>
-          </div>
-
-          <div className="hero-card">
-            <div className="mini-top">
-              <span>مراجعتك اليوم</span>
-              <span className="online-dot">●</span>
-            </div>
-            <div className="progress-ring">
-              <div>
-                <strong>75%</strong>
-                <small>تقدّم</small>
-              </div>
-            </div>
-            <div className="mini-stats">
-              <div><b>12</b><span>درس</span></div>
-              <div><b>48</b><span>تمرين</span></div>
-              <div><b>7</b><span>أيام 🔥</span></div>
-            </div>
-            <div className="next-lesson">
-              <span className="lesson-icon">📘</span>
-              <div><small>الدرس القادم</small><b>ابدأ من حيث توقفت</b></div>
-              <span>←</span>
-            </div>
-          </div>
-        </section>
-
-        <section id="branches" className="section branches-section">
-          <div className="section-heading">
-            <div>
-              <span className="section-kicker">اختر طريقك</span>
-              <h2>شنية <span>شعبتك؟</span></h2>
-            </div>
-            <p>اختار شعبتك باش نوجهوك مباشرة للمحتوى المناسب ليك.</p>
-          </div>
-
-          <div className="branch-grid">
-            {branches.map((branch) => (
-              <button
-                key={branch.name}
-                className={`branch-card ${branch.tone} ${selected === branch.name ? "selected" : ""}`}
-                onClick={() => setSelected(branch.name)}
-              >
-                <span className="branch-icon">{branch.icon}</span>
-                <span className="branch-copy">
-                  <b>{branch.name}</b>
-                  <small>{branch.fr}</small>
-                </span>
-                <span className="arrow">←</span>
-              </button>
-            ))}
-          </div>
-
-          {selected && (
-            <div className="selection-note">
-              <span>✨</span>
-              اخترت <b>{selected}</b> — الخطوة الجاية: المواد ثم الفصول والدروس.
-            </div>
-          )}
-        </section>
-
-        <section id="features" className="section features-section">
-          <div className="section-heading centered">
-            <span className="section-kicker">كل شيء في بلاصة وحدة</span>
-            <h2>علاش <span>Bac TN+؟</span></h2>
-            <p>بسيط في الاستعمال، قوي في المراجعة، ومبني على احتياجات التلميذ.</p>
-          </div>
-
-          <div className="feature-grid">
-            {features.map(([icon, title, text]) => (
-              <article className="feature-card" key={title}>
-                <span className="feature-icon">{icon}</span>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="motivation" className="motivation">
-          <div className="motivation-inner">
-            <span className="heart">🤲</span>
-            <div>
-              <span className="section-kicker">كلمة من Bac TN+</span>
-              <h2>ربي ينجّح كل تلميذ ويحققلكم تعبكم ❤️</h2>
-              <p>
-                الباك موش ساهل، أما خطوة صغيرة كل نهار تعمل فرق كبير.
-                <br />
-                <b>ما تستسلمش — مستقبلك يستاهل.</b>
-              </p>
-            </div>
-            <button className="primary-btn" onClick={() => scrollTo("branches")}>نبدأ توا ←</button>
-          </div>
-        </section>
-      </main>
-
-      <footer>
-        <div className="footer-inner">
-          <div><b>Bac TN<span>+</span></b><small>منصة تونسية للتحضير للبكالوريا 🇹🇳</small></div>
-          <span>© 2026 Bac TN+ — بالتوفيق لكل التلامذة ❤️</span>
-        </div>
-      </footer>
+  <main>
+   <section id="home" className="hero">
+    <div className="hero-glow glow-one"/><div className="hero-glow glow-two"/>
+    <div className="hero-content">
+     <div className="eyebrow"><span>🇹🇳</span> منصتك الجديدة للبكالوريا التونسية</div>
+     <h1>حضّر للبكالوريا<br/><span>بثقة، خطوة بخطوة.</span></h1>
+     <p className="hero-text">دروس، تمارين، QCM واختبارات في مكان واحد.<br/><b>نظّم وقتك، تابع تقدّمك، وقرّب أكثر لهدفك.</b></p>
+     <div className="hero-actions"><button className="primary-btn" onClick={()=>scrollTo("branches")}>ابدأ المراجعة <span>←</span></button><button className="secondary-btn" onClick={()=>scrollTo("features")}>اكتشف Bac TN+</button></div>
+     <div className="trust-row"><span>✓ مجاني للانطلاق</span><span>✓ سهل الاستعمال</span><span>✓ محتوى منظم</span></div>
     </div>
-  );
-}
+    <div className="hero-card"><div className="mini-top"><span>منصتك اليوم</span><span className="online-dot">●</span></div><div className="progress-ring"><div><strong>7</strong><small>شعب</small></div></div><div className="mini-stats"><div><b>56</b><span>مادة</span></div><div><b>138</b><span>فصل</span></div><div><b>426</b><span>درس</span></div></div><div className="next-lesson"><span className="lesson-icon">📘</span><div><small>الخطوة الأولى</small><b>اختار شعبتك وابدأ</b></div><span>←</span></div></div>
+   </section>
 
+   <section id="branches" className="section branches-section">
+    <div className="section-heading"><div><span className="section-kicker">اختر طريقك</span><h2>شنية <span>شعبتك؟</span></h2></div><p>اختار شعبتك باش نوجهوك مباشرة للمواد الموجودة في Bac TN+.</p></div>
+    {loading ? <div className="loading-box">نحضّرلك الشعب... ⏳</div> :
+    <div className="branch-grid">{branches.map(b=>{const v=branchVisuals[b.slug]||["📘",b.name,"green"];return <button key={b.id} className={`branch-card ${v[2]} ${selected?.id===b.id?"selected":""}`} onClick={()=>chooseBranch(b)}><span className="branch-icon">{v[0]}</span><span className="branch-copy"><b>{b.name}</b><small>{v[1]}</small></span><span className="arrow">←</span></button>})}</div>}
+    {error && <div className="error-note">⚠️ {error}</div>}
+    {selected && !error && <div className="subjects-panel"><div className="subjects-head"><div><span className="section-kicker">مواد الشعبة</span><h3>{selected.name}</h3></div><span>{subjects.length} مادة</span></div><div className="subject-grid">{subjects.map(s=><button key={s.id} className="subject-card"><span>📚</span><div><b>{s.name}</b>{s.is_optional&&<small>اختيارية</small>}</div><i>←</i></button>)}</div></div>}
+   </section>
+
+   <section id="features" className="section features-section"><div className="section-heading centered"><span className="section-kicker">كل شيء في بلاصة وحدة</span><h2>علاش <span>Bac TN+؟</span></h2><p>بسيط في الاستعمال، قوي في المراجعة، ومبني على احتياجات التلميذ.</p></div><div className="feature-grid">{features.map(([icon,title,text])=><article className="feature-card" key={title}><span className="feature-icon">{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+
+   <section id="motivation" className="motivation"><div className="motivation-inner"><span className="heart">🤲</span><div><span className="section-kicker">كلمة من Bac TN+</span><h2>ربي ينجّح كل تلميذ ويحققلكم تعبكم ❤️</h2><p>الباك موش ساهل، أما خطوة صغيرة كل نهار تعمل فرق كبير.<br/><b>ما تستسلمش — مستقبلك يستاهل.</b></p></div><button className="primary-btn" onClick={()=>scrollTo("branches")}>نبدأ توا ←</button></div></section>
+  </main>
+  <footer><div className="footer-inner"><div><b>Bac TN<span>+</span></b><small>منصة تونسية للتحضير للبكالوريا 🇹🇳</small></div><span>© 2026 Bac TN+ — بالتوفيق لكل التلامذة ❤️</span></div></footer>
+ </div>
+}
 export default App;
