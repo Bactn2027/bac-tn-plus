@@ -30,6 +30,12 @@ function App() {
  const [exercises,setExercises]=useState([]);
  const [showExercises,setShowExercises]=useState(false);
  const [openCorrection,setOpenCorrection]=useState(null);
+ const [quiz,setQuiz]=useState(null);
+ const [quizQuestions,setQuizQuestions]=useState([]);
+ const [quizAnswers,setQuizAnswers]=useState({});
+ const [quizSubmitted,setQuizSubmitted]=useState(false);
+ const [quizScore,setQuizScore]=useState(null);
+ const [showQuiz,setShowQuiz]=useState(false);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
 
@@ -75,6 +81,7 @@ function App() {
    setExercises([]);
    setShowExercises(false);
    setOpenCorrection(null);
+   setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setShowQuiz(false);
    setError("");
  }
 
@@ -94,6 +101,26 @@ function App() {
    if(error){setError("صار مشكل في جلب تمارين الدرس."); return;}
    setExercises(data||[]);
  }
+
+ async function startQuiz(){
+   if(!selectedLesson) return;
+   setShowQuiz(true); setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setError("");
+   const {data:quizData,error:quizError}=await supabase.from("quizzes").select("id,title,description,question_count,time_limit_seconds,difficulty").eq("lesson_id",selectedLesson.id).eq("is_active",true).order("title").limit(1);
+   if(quizError){setError("صار مشكل في جلب الـQCM."); return;}
+   const currentQuiz=quizData?.[0]; if(!currentQuiz) return; setQuiz(currentQuiz);
+   const {data:links,error:linksError}=await supabase.from("quiz_questions").select("question_id,position").eq("quiz_id",currentQuiz.id).order("position");
+   if(linksError){setError("صار مشكل في جلب أسئلة الـQCM."); return;}
+   const ids=(links||[]).map(x=>x.question_id); if(!ids.length) return;
+   const {data:questions,error:questionsError}=await supabase.from("questions").select("id,question_text,explanation,difficulty").in("id",ids);
+   if(questionsError){setError("صار مشكل في جلب الأسئلة."); return;}
+   const {data:options,error:optionsError}=await supabase.from("question_options").select("id,question_id,option_text,is_correct,position").in("question_id",ids).order("position");
+   if(optionsError){setError("صار مشكل في جلب الاختيارات."); return;}
+   const qm=Object.fromEntries((questions||[]).map(q=>[q.id,q])); const om={}; (options||[]).forEach(o=>(om[o.question_id]??=[]).push(o));
+   setQuizQuestions((links||[]).map(l=>({...qm[l.question_id],position:l.position,options:om[l.question_id]||[]})).filter(q=>q.id));
+ }
+
+ function chooseQuizAnswer(questionId,optionId){ if(!quizSubmitted) setQuizAnswers(prev=>({...prev,[questionId]:optionId})); }
+ function submitQuiz(){ const score=quizQuestions.reduce((n,q)=>n+(q.options.some(o=>o.id===quizAnswers[q.id]&&o.is_correct)?1:0),0); setQuizScore(score); setQuizSubmitted(true); }
 
  const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
 
@@ -172,6 +199,17 @@ function App() {
         </div>}
       </article>)}
     </div> : <div className="empty-box">ما فماش تمارين متاحة للدرس هذا توا.</div>}
+    <div className="quiz-cta"><div><span className="section-kicker">المرحلة الموالية</span><h4>اختبر روحك بالـQCM</h4><p>جاوب على أسئلة الدرس وشوف نتيجتك والتصحيح.</p></div><button className="primary-btn" onClick={startQuiz}>ابدأ الـQCM ←</button></div>
+  </section>}
+  {showQuiz && <section className="quiz-panel">
+    <div className="subjects-head"><div><span className="section-kicker">اختبار الدرس</span><h3>{quiz?.title || "QCM الدرس"}</h3>{quiz?.description&&<p className="quiz-description">{quiz.description}</p>}</div><span>{quizQuestions.length} سؤال</span></div>
+    {quizQuestions.length ? <div className="quiz-list">{quizQuestions.map((q,index)=><article className="quiz-question" key={q.id}>
+      <div className="quiz-question-head"><span className="exercise-number">{String(q.position ?? index+1).padStart(2,"0")}</span><div><h4>{q.question_text}</h4>{q.difficulty&&<span className="exercise-difficulty">{q.difficulty}</span>}</div></div>
+      <div className="quiz-options">{q.options.map((o,oi)=><button key={o.id} className={`quiz-option ${quizAnswers[q.id]===o.id?"selected":""} ${quizSubmitted&&o.is_correct?"correct":""} ${quizSubmitted&&quizAnswers[q.id]===o.id&&!o.is_correct?"wrong":""}`} onClick={()=>chooseQuizAnswer(q.id,o.id)} disabled={quizSubmitted}><span>{String.fromCharCode(65+oi)}</span>{o.option_text}</button>)}</div>
+      {quizSubmitted&&<div className="quiz-feedback">{q.options.some(o=>o.id===quizAnswers[q.id]&&o.is_correct)?"✅ إجابة صحيحة":"❌ إجابة غالطة"}{q.explanation&&<p>{q.explanation}</p>}</div>}
+    </article>)}
+    {!quizSubmitted?<button className="primary-btn quiz-submit" onClick={submitQuiz}>صحّح الـQCM ✓</button>:<div className="quiz-result"><strong>{quizScore} / {quizQuestions.length}</strong><span>{quizScore===quizQuestions.length?"ممتاز! 🔥":quizScore>=quizQuestions.length/2?"باهي، واصل المراجعة 💪":"راجع الدرس وحاول مرة أخرى 📚"}</span><button className="secondary-btn" onClick={()=>{setQuizSubmitted(false);setQuizAnswers({});setQuizScore(null);}}>عاود الـQCM</button></div>}
+    </div> : <div className="empty-box">ما فماش QCM مربوط بالدرس هذا توا.</div>}
   </section>}
 </article>}
 </div>}</div>}
