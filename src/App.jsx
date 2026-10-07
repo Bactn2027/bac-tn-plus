@@ -35,11 +35,29 @@ function App() {
  const [quizAnswers,setQuizAnswers]=useState({});
  const [quizSubmitted,setQuizSubmitted]=useState(false);
  const [quizScore,setQuizScore]=useState(null);
+ const [quizTimeLeft,setQuizTimeLeft]=useState(null);
  const [showQuiz,setShowQuiz]=useState(false);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
 
  useEffect(()=>{ loadBranches(); },[]);
+
+ useEffect(()=>{
+   if(!showQuiz || !quiz || quizSubmitted || !quiz.time_limit_seconds) return;
+   setQuizTimeLeft(quiz.time_limit_seconds);
+   const timer=setInterval(()=>{
+     setQuizTimeLeft(prev=>{
+       if(prev===null) return prev;
+       if(prev<=1){
+         clearInterval(timer);
+         submitQuiz();
+         return 0;
+       }
+       return prev-1;
+     });
+   },1000);
+   return ()=>clearInterval(timer);
+ },[showQuiz,quiz,quizSubmitted]);
 
  async function loadBranches(){
    setLoading(true); setError("");
@@ -81,7 +99,7 @@ function App() {
    setExercises([]);
    setShowExercises(false);
    setOpenCorrection(null);
-   setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setShowQuiz(false);
+   setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setQuizTimeLeft(null); setShowQuiz(false);
    setError("");
  }
 
@@ -104,7 +122,7 @@ function App() {
 
  async function startQuiz(){
    if(!selectedLesson) return;
-   setShowQuiz(true); setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setError("");
+   setShowQuiz(true); setQuiz(null); setQuizQuestions([]); setQuizAnswers({}); setQuizSubmitted(false); setQuizScore(null); setQuizTimeLeft(null); setError("");
    const {data:quizData,error:quizError}=await supabase.from("quizzes").select("id,title,description,question_count,time_limit_seconds,difficulty").eq("lesson_id",selectedLesson.id).eq("is_active",true).order("title").limit(1);
    if(quizError){setError("صار مشكل في جلب الـQCM."); return;}
    const currentQuiz=quizData?.[0]; if(!currentQuiz) return; setQuiz(currentQuiz);
@@ -120,7 +138,8 @@ function App() {
  }
 
  function chooseQuizAnswer(questionId,optionId){ if(!quizSubmitted) setQuizAnswers(prev=>({...prev,[questionId]:optionId})); }
- function submitQuiz(){ const score=quizQuestions.reduce((n,q)=>n+(q.options.some(o=>o.id===quizAnswers[q.id]&&o.is_correct)?1:0),0); setQuizScore(score); setQuizSubmitted(true); }
+ function submitQuiz(){ if(quizSubmitted) return; const score=quizQuestions.reduce((n,q)=>n+(q.options.some(o=>o.id===quizAnswers[q.id]&&o.is_correct)?1:0),0); setQuizScore(score); setQuizSubmitted(true); }
+ function formatQuizTime(seconds){ if(seconds===null || seconds===undefined) return ""; const m=Math.floor(seconds/60); const s=seconds%60; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; }
 
  const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
 
@@ -202,13 +221,13 @@ function App() {
     <div className="quiz-cta"><div><span className="section-kicker">المرحلة الموالية</span><h4>اختبر روحك بالـQCM</h4><p>جاوب على أسئلة الدرس وشوف نتيجتك والتصحيح.</p></div><button className="primary-btn" onClick={startQuiz}>ابدأ الـQCM ←</button></div>
   </section>}
   {showQuiz && <section className="quiz-panel">
-    <div className="subjects-head"><div><span className="section-kicker">اختبار الدرس</span><h3>{quiz?.title || "QCM الدرس"}</h3>{quiz?.description&&<p className="quiz-description">{quiz.description}</p>}</div><span>{quizQuestions.length} سؤال</span></div>
+    <div className="subjects-head"><div><span className="section-kicker">اختبار الدرس</span><h3>{quiz?.title || "QCM الدرس"}</h3>{quiz?.description&&<p className="quiz-description">{quiz.description}</p>}</div><div className="quiz-meta"><span>{quizQuestions.length} سؤال</span>{quiz?.time_limit_seconds>0&&<span className={`quiz-timer ${quizTimeLeft!==null&&quizTimeLeft<=30&&!quizSubmitted?"urgent":""}`}>⏱️ {formatQuizTime(quizTimeLeft)}</span>}</div></div>
     {quizQuestions.length ? <div className="quiz-list">{quizQuestions.map((q,index)=><article className="quiz-question" key={q.id}>
       <div className="quiz-question-head"><span className="exercise-number">{String(q.position ?? index+1).padStart(2,"0")}</span><div><h4>{q.question_text}</h4>{q.difficulty&&<span className="exercise-difficulty">{q.difficulty}</span>}</div></div>
       <div className="quiz-options">{q.options.map((o,oi)=><button key={o.id} className={`quiz-option ${quizAnswers[q.id]===o.id?"selected":""} ${quizSubmitted&&o.is_correct?"correct":""} ${quizSubmitted&&quizAnswers[q.id]===o.id&&!o.is_correct?"wrong":""}`} onClick={()=>chooseQuizAnswer(q.id,o.id)} disabled={quizSubmitted}><span>{String.fromCharCode(65+oi)}</span>{o.option_text}</button>)}</div>
       {quizSubmitted&&<div className="quiz-feedback">{q.options.some(o=>o.id===quizAnswers[q.id]&&o.is_correct)?"✅ إجابة صحيحة":"❌ إجابة غالطة"}{q.explanation&&<p>{q.explanation}</p>}</div>}
     </article>)}
-    {!quizSubmitted?<button className="primary-btn quiz-submit" onClick={submitQuiz}>صحّح الـQCM ✓</button>:<div className="quiz-result"><strong>{quizScore} / {quizQuestions.length}</strong><span>{quizScore===quizQuestions.length?"ممتاز! 🔥":quizScore>=quizQuestions.length/2?"باهي، واصل المراجعة 💪":"راجع الدرس وحاول مرة أخرى 📚"}</span><button className="secondary-btn" onClick={()=>{setQuizSubmitted(false);setQuizAnswers({});setQuizScore(null);}}>عاود الـQCM</button></div>}
+    {!quizSubmitted?<button className="primary-btn quiz-submit" onClick={submitQuiz}>صحّح الـQCM ✓</button>:<div className="quiz-result"><strong>{quizScore} / {quizQuestions.length}</strong><span>{quizScore===quizQuestions.length?"ممتاز! 🔥":quizScore>=quizQuestions.length/2?"باهي، واصل المراجعة 💪":"راجع الدرس وحاول مرة أخرى 📚"}</span><button className="secondary-btn" onClick={()=>{setQuizSubmitted(false);setQuizAnswers({});setQuizScore(null);setQuizTimeLeft(quiz?.time_limit_seconds||null);}}>عاود الـQCM</button></div>}
     </div> : <div className="empty-box">ما فماش QCM مربوط بالدرس هذا توا.</div>}
   </section>}
 </article>}
