@@ -27,6 +27,9 @@ function App() {
  const [selectedChapter,setSelectedChapter]=useState(null);
  const [selectedLesson,setSelectedLesson]=useState(null);
  const [selectedSubject,setSelectedSubject]=useState(null);
+ const [exercises,setExercises]=useState([]);
+ const [showExercises,setShowExercises]=useState(false);
+ const [openCorrection,setOpenCorrection]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
 
@@ -69,7 +72,27 @@ function App() {
 
  function chooseLesson(lesson){
    setSelectedLesson(lesson);
+   setExercises([]);
+   setShowExercises(false);
+   setOpenCorrection(null);
    setError("");
+ }
+
+ async function startExercises(){
+   if(!selectedLesson) return;
+   setShowExercises(true);
+   setExercises([]);
+   setOpenCorrection(null);
+   setError("");
+
+   const {data,error}=await supabase.from("exercises")
+     .select("id,title,statement,correction,explanation,difficulty,position")
+     .eq("lesson_id",selectedLesson.id)
+     .eq("is_active",true)
+     .order("position");
+
+   if(error){setError("صار مشكل في جلب تمارين الدرس."); return;}
+   setExercises(data||[]);
  }
 
  const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth"});
@@ -118,9 +141,38 @@ function App() {
       paragraph.trim() ? <p key={index}>{paragraph}</p> : null
     ) : <div className="empty-box">محتوى الدرس موش متوفر توا.</div>}
   </div>
-  <button className="primary-btn lesson-exercises-btn" onClick={()=>alert("التمارين باش نربطوها بالدرس في المرحلة الجاية.")}>
+  <button className="primary-btn lesson-exercises-btn" onClick={startExercises}>
     ابدأ التمارين ←
   </button>
+  {showExercises && <section className="exercises-panel">
+    <div className="subjects-head">
+      <div>
+        <span className="section-kicker">تطبيق ومراجعة</span>
+        <h3>تمارين الدرس</h3>
+      </div>
+      <span>{exercises.length} تمرين</span>
+    </div>
+
+    {exercises.length ? <div className="exercise-list">
+      {exercises.map((e,index)=><article className="exercise-card" key={e.id}>
+        <div className="exercise-top">
+          <span className="exercise-number">{String(e.position ?? index+1).padStart(2,"0")}</span>
+          <div>
+            <h4>{e.title || `تمرين ${index+1}`}</h4>
+            {e.difficulty && <span className="exercise-difficulty">{e.difficulty}</span>}
+          </div>
+        </div>
+        <div className="exercise-statement">{e.statement}</div>
+        <button className="secondary-btn correction-btn" onClick={()=>setOpenCorrection(openCorrection===e.id?null:e.id)}>
+          {openCorrection===e.id ? "إخفاء التصحيح ↑" : "إظهار التصحيح ↓"}
+        </button>
+        {openCorrection===e.id && <div className="exercise-correction">
+          <div><b>التصحيح</b><p>{e.correction}</p></div>
+          {e.explanation && <div><b>الشرح</b><p>{e.explanation}</p></div>}
+        </div>}
+      </article>)}
+    </div> : <div className="empty-box">ما فماش تمارين متاحة للدرس هذا توا.</div>}
+  </section>}
 </article>}
 </div>}</div>}
    </div>}

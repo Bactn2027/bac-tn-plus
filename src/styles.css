@@ -173,3 +173,82 @@
   .lesson-reader-head{display:block}
   .lesson-reader-meta{margin-top:12px;white-space:normal}
 }
+
+
+/* Exercises */
+.exercises-panel{
+  margin-top:24px;
+  padding:22px;
+  border:1px solid rgba(57,217,138,.16);
+  border-radius:22px;
+  background:rgba(0,0,0,.12);
+}
+.exercise-list{
+  display:grid;
+  gap:14px;
+}
+.exercise-card{
+  padding:18px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  background:rgba(255,255,255,.025);
+}
+.exercise-top{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+.exercise-number{
+  min-width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:rgba(57,217,138,.1);
+  color:#72e8b2;
+  font-weight:800;
+}
+.exercise-top h4{
+  margin:2px 0 5px;
+  font-size:1rem;
+}
+.exercise-difficulty{
+  color:#a9b6c7;
+  font-size:.78rem;
+}
+.exercise-statement{
+  padding:15px;
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+  color:#d9e2ed;
+  line-height:1.9;
+  white-space:pre-line;
+}
+.correction-btn{
+  margin-top:12px;
+}
+.exercise-correction{
+  margin-top:12px;
+  padding:16px;
+  border-radius:14px;
+  border-right:3px solid rgba(57,217,138,.55);
+  background:rgba(57,217,138,.055);
+}
+.exercise-correction + *{margin-top:0}
+.exercise-correction b{
+  color:#72e8b2;
+}
+.exercise-correction p{
+  margin:7px 0 14px;
+  color:#d9e2ed;
+  line-height:1.9;
+  white-space:pre-line;
+}
+.exercise-correction div:last-child p{
+  margin-bottom:0;
+}
+@media(max-width:700px){
+  .exercises-panel{padding:16px}
+  .exercise-card{padding:15px}
+}
